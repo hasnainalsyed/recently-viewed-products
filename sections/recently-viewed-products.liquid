@@ -1,0 +1,144 @@
+{%- style -%}
+  .section-{{ section.id }}-padding {
+    padding-top: {{ section.settings.padding_top | times: 0.75 | round: 0 }}px;
+    padding-bottom: {{ section.settings.padding_bottom | times: 0.75 | round: 0 }}px;
+  }
+
+  @media screen and (min-width: 750px) {
+    .section-{{ section.id }}-padding {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+{%- endstyle -%}
+
+{{ 'recently-viewed-products.css' | asset_url | stylesheet_tag }}
+
+<div class="color-{{ section.settings.color_scheme }} gradient">
+  <recently-viewed-products
+    class="recently-viewed-products page-width section-{{ section.id }}-padding isolate{% if settings.animations_reveal_on_scroll %} scroll-trigger animate--slide-in{% endif %}"
+    data-section-id="{{ section.id }}"
+  >
+    {%- if section.settings.heading != blank -%}
+      <h2 class="recently-viewed-products__heading inline-richtext {{ section.settings.heading_size }} font-subtitle color-green after-pattern center">
+        {{ section.settings.heading }}
+      </h2>
+    {%- endif -%}
+
+    <div class="recently-viewed-products__grid" id="recently-viewed-products-grid">
+      <div class="recently-viewed-products__empty" id="recently-viewed-empty">
+        {{ section.settings.empty_message | default: 'No recently viewed products' }}
+      </div>
+    </div>
+  </recently-viewed-products>
+</div>
+
+<script src="{{ 'recently-viewed-products.js' | asset_url }}" defer></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Only track on product pages
+    if (window.location.pathname.includes('/products/')) {
+      const productData = {
+        id: {{ product.id | default: 'null' }},
+        title: {{ product.title | json }},
+        url: {{ product.url | json }},
+        image: {{ product.featured_image | img_url: '300x300' | json }},
+        price: {{ product.price | money | json }},
+        handle: {{ product.handle | json }}
+      };
+
+      new RecentlyViewedProducts({
+        maxProducts: {{ section.settings.max_products | default: 6 }},
+        productData: productData
+      });
+    } else {
+      // Just display products without tracking
+      new RecentlyViewedProducts({
+        maxProducts: {{ section.settings.max_products | default: 6 }}
+      });
+    }
+  });
+</script>
+
+{% schema %}
+{
+  "name": "Recently Viewed Products",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Recently Viewed Products"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "options": [
+        {
+          "value": "h2",
+          "label": "Small"
+        },
+        {
+          "value": "h1",
+          "label": "Medium"
+        },
+        {
+          "value": "h0",
+          "label": "Large"
+        }
+      ],
+      "default": "h1",
+      "label": "Heading size"
+    },
+    {
+      "type": "range",
+      "id": "max_products",
+      "min": 3,
+      "max": 12,
+      "step": 1,
+      "default": 6,
+      "label": "Maximum number of products to show"
+    },
+    {
+      "type": "text",
+      "id": "empty_message",
+      "label": "Empty state message",
+      "default": "No recently viewed products"
+    },
+    {
+      "type": "header",
+      "content": "Section Padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "default": 36,
+      "unit": "px",
+      "label": "Padding top"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "default": 36,
+      "unit": "px",
+      "label": "Padding bottom"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "Color scheme",
+      "default": "background-1"
+    }
+  ]
+}
+{% endschema %}
