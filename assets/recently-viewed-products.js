@@ -5,9 +5,10 @@
 class RecentlyViewedProducts {
   constructor(options = {}) {
     this.storageKey = options.storageKey || 'recentlyViewedProducts';
-    this.maxProducts = options.maxProducts || 6;
-    this.gridContainer = options.gridContainer || document.getElementById('recently-viewed-products-grid');
-    this.emptyMessage = options.emptyMessage || document.getElementById('recently-viewed-empty');
+    this.maxProducts = options.maxProducts || 9;
+    this.gridContainer = options.gridContainer || document.querySelector('[data-recently-viewed-products-grid]');
+    this.emptyMessage = options.emptyMessage || document.querySelector('[data-recently-viewed-empty]');
+    this.sectionContainer = options.sectionContainer || document.querySelector('[data-recently-viewed-section]');
     this.productData = options.productData || null;
 
     this.init();
@@ -54,14 +55,19 @@ class RecentlyViewedProducts {
       return;
     }
 
-    const products = this.getRecentlyViewed();
+    let products = this.getRecentlyViewed();
+
+    // Filter out the current product if we're on a product page
+    if (this.productData && this.productData.id) {
+      products = products.filter(product => product.id !== this.productData.id);
+    }
 
     if (products.length === 0) {
-      this.showEmptyMessage();
+      this.hideSection();
       return;
     }
 
-    this.hideEmptyMessage();
+    this.showSection();
 
     const productsHTML = products.map(product => `
       <div class="recently-viewed-product">
@@ -82,15 +88,15 @@ class RecentlyViewedProducts {
     this.gridContainer.innerHTML = productsHTML;
   }
 
-  showEmptyMessage() {
-    if (this.emptyMessage) {
-      this.emptyMessage.style.display = 'block';
+  showSection() {
+    if (this.sectionContainer && this.sectionContainer.classList.contains('hidden')) {
+      this.sectionContainer.classList.remove('hidden');
     }
   }
 
-  hideEmptyMessage() {
-    if (this.emptyMessage) {
-      this.emptyMessage.style.display = 'none';
+  hideSection() {
+    if (this.sectionContainer && this.sectionContainer.classList.contains('hidden')) {
+      this.sectionContainer.classList.add('hidden');
     }
   }
 
@@ -111,4 +117,4 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = RecentlyViewedProducts;
 } else {
   window.RecentlyViewedProducts = RecentlyViewedProducts;
-}
+} 

@@ -2,6 +2,10 @@
  * Recently Viewed Products Styles
  */
 
+.hidden {
+  display: none !important;
+}
+
 .recently-viewed-products {
   margin-top: 2rem;
 }

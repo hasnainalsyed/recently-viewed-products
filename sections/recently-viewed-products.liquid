@@ -14,7 +14,10 @@
 
 {{ 'recently-viewed-products.css' | asset_url | stylesheet_tag }}
 
-<div class="color-{{ section.settings.color_scheme }} gradient">
+<div
+  class="color-{{ section.settings.color_scheme }} gradient hidden"
+  data-recently-viewed-section
+>
   <recently-viewed-products
     class="recently-viewed-products page-width section-{{ section.id }}-padding isolate{% if settings.animations_reveal_on_scroll %} scroll-trigger animate--slide-in{% endif %}"
     data-section-id="{{ section.id }}"
@@ -25,8 +28,14 @@
       </h2>
     {%- endif -%}
 
-    <div class="recently-viewed-products__grid" id="recently-viewed-products-grid">
-      <div class="recently-viewed-products__empty" id="recently-viewed-empty">
+    <div
+      class="recently-viewed-products__grid"
+      data-recently-viewed-products-grid
+    >
+      <div
+        class="recently-viewed-products__empty"
+        data-recently-viewed-empty
+      >
         {{ section.settings.empty_message | default: 'No recently viewed products' }}
       </div>
     </div>
@@ -34,6 +43,7 @@
 </div>
 
 <script src="{{ 'recently-viewed-products.js' | asset_url }}" defer></script>
+
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     // Only track on product pages
@@ -48,13 +58,15 @@
       };
 
       new RecentlyViewedProducts({
-        maxProducts: {{ section.settings.max_products | default: 6 }},
-        productData: productData
+        maxProducts: {{ section.settings.max_products | default: 9 }},
+        productData: productData,
+        sectionContainer: document.querySelector('[data-recently-viewed-section]')
       });
     } else {
       // Just display products without tracking
       new RecentlyViewedProducts({
-        maxProducts: {{ section.settings.max_products | default: 6 }}
+        maxProducts: {{ section.settings.max_products | default: 9 }},
+          sectionContainer: document.querySelector('[data-recently-viewed-section]')
       });
     }
   });
@@ -138,6 +150,11 @@
       "id": "color_scheme",
       "label": "Color scheme",
       "default": "background-1"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Recently Viewed Products"
     }
   ]
 }
