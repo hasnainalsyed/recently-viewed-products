@@ -1,3 +1,5 @@
+{{ 'recently-viewed-products.css' | asset_url | stylesheet_tag }}
+
 {%- style -%}
   .section-{{ section.id }}-padding {
     padding-top: {{ section.settings.padding_top | times: 0.75 | round: 0 }}px;
@@ -12,63 +14,82 @@
   }
 {%- endstyle -%}
 
-{{ 'recently-viewed-products.css' | asset_url | stylesheet_tag }}
-
 <div
   class="color-{{ section.settings.color_scheme }} gradient hidden"
   data-recently-viewed-section
 >
   <recently-viewed-products
-    class="recently-viewed-products page-width section-{{ section.id }}-padding isolate{% if settings.animations_reveal_on_scroll %} scroll-trigger animate--slide-in{% endif %}"
+    class="related-products page-width section-{{ section.id }}-padding isolate{% if settings.animations_reveal_on_scroll %} scroll-trigger animate--slide-in{% endif %}"
     data-section-id="{{ section.id }}"
   >
-    {%- if section.settings.heading != blank -%}
-      <h2 class="recently-viewed-products__heading inline-richtext {{ section.settings.heading_size }} font-subtitle color-green after-pattern center">
-        {{ section.settings.heading }}
-      </h2>
-    {%- endif -%}
-
+    <h3 class="related-products__heading inline-richtext {{ section.settings.heading_size }} font-subtitle color-green after-pattern center">
+      {{ section.settings.heading }}
+    </h3>
     <div
-      class="recently-viewed-products__grid"
-      data-recently-viewed-products-grid
+      class="swiper"
+      role="list"
+      data-swiper-name="recently-viewed-products"
+      data-slides-desktop="{{ section.settings.columns_desktop }}"
+      data-slides-mobile="{{ section.settings.columns_mobile }}"
     >
-      <div
-        class="recently-viewed-products__empty"
-        data-recently-viewed-empty
-      >
-        {{ section.settings.empty_message | default: 'No recently viewed products' }}
+      <div class="swiper-wrapper" data-recently-viewed-products-grid>
+        {% comment %}
+          This will be populated by JavaScript with recently viewed product cards
+          For now, we'll use client-side rendering as a fallback
+        {% endcomment %}
       </div>
+      <button
+        type="button"
+        class="slider-button slider-button--prev"
+        name="previous"
+        aria-label="{{ 'general.slider.previous_slide' | t }}"
+      >
+        <span class="svg-wrapper">{{ 'icon-caret.svg' | inline_asset_content }}</span>
+      </button>
+      <button
+        type="button"
+        class="slider-button slider-button--next"
+        name="next"
+        aria-label="{{ 'general.slider.next_slide' | t }}"
+      >
+        <span class="svg-wrapper">{{ 'icon-caret.svg' | inline_asset_content }}</span>
+      </button>
     </div>
   </recently-viewed-products>
+  {% if section.settings.image_shape == 'arch' %}
+    {{ 'mask-arch.svg' | inline_asset_content }}
+  {%- endif -%}
 </div>
 
 <script src="{{ 'recently-viewed-products.js' | asset_url }}" defer></script>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Only track on product pages
+    const sectionContainer = document.querySelector('[data-recently-viewed-section]');
+
+    const options = {
+      maxProducts: {{ section.settings.max_products | default: 9 }},
+      sectionContainer: sectionContainer
+    };
+
     if (window.location.pathname.includes('/products/')) {
       const productData = {
-        id: {{ product.id | default: 'null' }},
+        id: {{ product.id | json }},
         title: {{ product.title | json }},
         url: {{ product.url | json }},
-        image: {{ product.featured_image | img_url: '300x300' | json }},
+        image: {{ product.featured_image | img_url: '533x533' | json }},
         price: {{ product.price | money | json }},
-        handle: {{ product.handle | json }}
+        compare_at_price: {{ product.compare_at_price | money | json }},
+        price_min: {{ product.price_min | money | json }},
+        price_max: {{ product.price_max | money | json }},
+        handle: {{ product.handle | json }},
+        rating: {{ product.metafields.judgeme.badge | json }}
       };
 
-      new RecentlyViewedProducts({
-        maxProducts: {{ section.settings.max_products | default: 9 }},
-        productData: productData,
-        sectionContainer: document.querySelector('[data-recently-viewed-section]')
-      });
-    } else {
-      // Just display products without tracking
-      new RecentlyViewedProducts({
-        maxProducts: {{ section.settings.max_products | default: 9 }},
-          sectionContainer: document.querySelector('[data-recently-viewed-section]')
-      });
+      options.productData = productData;
     }
+
+    new RecentlyViewedProducts(options);
   });
 </script>
 
@@ -114,10 +135,111 @@
       "label": "Maximum number of products to show"
     },
     {
-      "type": "text",
-      "id": "empty_message",
-      "label": "Empty state message",
-      "default": "No recently viewed products"
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "default": 4,
+      "label": "Number of columns on desktop"
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "default": "2",
+      "label": "Number of columns on mobile",
+      "options": [
+        {
+          "value": "1",
+          "label": "1 column"
+        },
+        {
+          "value": "2",
+          "label": "2 columns"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "Product Cards"
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "options": [
+        {
+          "value": "adapt",
+          "label": "Adapt to image"
+        },
+        {
+          "value": "portrait",
+          "label": "Portrait"
+        },
+        {
+          "value": "square",
+          "label": "Square"
+        }
+      ],
+      "default": "adapt",
+      "label": "Image ratio"
+    },
+    {
+      "type": "select",
+      "id": "image_shape",
+      "options": [
+        {
+          "value": "default",
+          "label": "Default"
+        },
+        {
+          "value": "arch",
+          "label": "Arch"
+        },
+        {
+          "value": "blob",
+          "label": "Blob"
+        },
+        {
+          "value": "chevronleft",
+          "label": "Chevron left"
+        },
+        {
+          "value": "chevronright",
+          "label": "Chevron right"
+        },
+        {
+          "value": "diamond",
+          "label": "Diamond"
+        },
+        {
+          "value": "parallelogram",
+          "label": "Parallelogram"
+        },
+        {
+          "value": "round",
+          "label": "Round"
+        }
+      ],
+      "default": "default",
+      "label": "Image shape"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_secondary_image",
+      "default": false,
+      "label": "Show secondary image on hover"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_vendor",
+      "default": false,
+      "label": "Show product vendor"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_rating",
+      "default": false,
+      "label": "Show product rating"
     },
     {
       "type": "header",

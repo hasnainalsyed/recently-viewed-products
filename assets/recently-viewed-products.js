@@ -7,10 +7,10 @@ class RecentlyViewedProducts {
     this.storageKey = options.storageKey || 'recentlyViewedProducts';
     this.maxProducts = options.maxProducts || 9;
     this.gridContainer = options.gridContainer || document.querySelector('[data-recently-viewed-products-grid]');
-    this.emptyMessage = options.emptyMessage || document.querySelector('[data-recently-viewed-empty]');
     this.sectionContainer = options.sectionContainer || document.querySelector('[data-recently-viewed-section]');
     this.productData = options.productData || null;
 
+    console.log(this.productData);
     this.init();
   }
 
@@ -22,6 +22,7 @@ class RecentlyViewedProducts {
 
     this.displayProducts();
   }
+
 
   addToRecentlyViewed(productData) {
     let recentlyViewed = this.getRecentlyViewed();
@@ -69,23 +70,162 @@ class RecentlyViewedProducts {
 
     this.showSection();
 
+    // Render products using the card structure
+    this.renderProducts(products);
+  }
+
+  renderProducts(products) {
+    // Render products using the same structure as card-product.liquid
     const productsHTML = products.map(product => `
-      <div class="recently-viewed-product">
-        <a href="${product.url}" class="recently-viewed-product__link">
-          <img 
-            src="${product.image}" 
-            alt="${product.title}"
-            class="recently-viewed-product__image"
-            loading="lazy"
-            onerror="this.style.display='none'"
-          >
-          <h3 class="recently-viewed-product__title">${product.title}</h3>
-          <div class="recently-viewed-product__price">${product.price}</div>
-        </a>
+      <div class="swiper-slide" data-product-id="${product.id}">
+        <div class="card-wrapper product-card-wrapper underline-links-hover">
+          <div class="card card--standard">
+            <div class="card__inner">
+              <div class="card__media">
+                <div class="media media--transparent media--hover-effect">
+                  <img
+                    src="${product.image}"
+                    alt="${product.title}"
+                    class="motion-reduce"
+                    loading="lazy"
+                    width="533"
+                    height="533"
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="card__content">
+              <div class="card__information">
+                <h4 class="card__heading h5">
+                  <a href="${product.url}" class="full-unstyled-link">
+                    ${product.title}
+                  </a>
+                </h4>
+                <div class="card-information">
+                  ${product.rating ? `<div class="rating">${product.rating}</div>` : ''}
+                  ${this.renderPrice(product)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     `).join('');
 
     this.gridContainer.innerHTML = productsHTML;
+    this.initSwiper();
+  }
+
+  renderPrice(product) {
+    const price = this.clean(product.price);
+    const compareAtPrice = this.clean(product.compare_at_price);
+    const priceMin = this.clean(product.price_min);
+    const priceMax = this.clean(product.price_max);
+    const compareAtPriceMin = this.clean(product.compare_at_price_min);
+    const compareAtPriceMax = this.clean(product.compare_at_price_max);
+
+    const hasPriceRange = priceMin && priceMax && priceMin !== priceMax;
+    const hasCompareAtPriceRange = compareAtPriceMin && compareAtPriceMax && (compareAtPriceMin !== compareAtPriceMax || compareAtPriceMin > priceMin);
+    const isOnSale = (compareAtPrice && compareAtPrice > price) || (hasCompareAtPriceRange && (compareAtPriceMin > priceMin || compareAtPriceMax > priceMax));
+
+    let priceClass = 'price';
+    if (isOnSale) priceClass += ' price--on-sale';
+    if (hasPriceRange) priceClass += ' price--price-range';
+
+    let priceHTML = `<div class="${priceClass}"><div class="price__container">`;
+
+    if (hasPriceRange && isOnSale) {
+      // Range with sale
+      priceHTML += `
+        <div class="price__sale">
+          <span class="visually-hidden visually-hidden--inline">Regular price</span>
+          <span class="price-item price-item--sale price-item--last">
+            ${product.price_min} – ${product.price_max}
+          </span>
+        </div>
+      `;
+    } else if (hasPriceRange) {
+      // Range, no sale
+      priceHTML += `
+        <div class="price__regular">
+          <span class="visually-hidden visually-hidden--inline">Regular price</span>
+          <span class="price-item price-item--regular">
+            ${product.price_min} – ${product.price_max}
+          </span>
+        </div>
+      `;
+    } else if (isOnSale) {
+      // Single product on sale
+      priceHTML += `
+        <div class="price__sale">
+          <span class="visually-hidden visually-hidden--inline">Regular price</span>
+          <span>
+            <s class="price-item price-item--regular">
+              ${product.compare_at_price}
+            </s>
+          </span>
+          <span class="visually-hidden visually-hidden--inline">Sale price</span>
+          <span class="price-item price-item--sale price-item--last">
+            ${product.price}
+          </span>
+        </div>
+      `;
+    } else {
+      // Single product, regular price
+      priceHTML += `
+        <div class="price__regular">
+          <span class="visually-hidden visually-hidden--inline">Regular price</span>
+          <span class="price-item price-item--regular">
+            ${product.price}
+          </span>
+        </div>
+      `;
+    }
+
+    priceHTML += '</div></div>';
+    return priceHTML;
+  }
+
+  clean(value) {
+    if (typeof value !== 'string') return parseFloat(value);
+    return parseFloat(value.replace(/[^\d.-]/g, ''));
+  }
+
+  initSwiper() {
+    const recentlyViewedProducts = this.sectionContainer.querySelector('[data-swiper-name="recently-viewed-products"]');
+    if (!recentlyViewedProducts) return;
+
+    // Avoid initializing twice
+    if (recentlyViewedProducts.classList.contains('swiper-initialized')) return;
+
+    const slidesDesktop = recentlyViewedProducts.getAttribute('data-slides-desktop') || 5;
+    const slidesMobile = recentlyViewedProducts.getAttribute('data-slides-mobile') || 2;
+
+    new Swiper(recentlyViewedProducts, {
+      slidesPerView: slidesMobile,
+      spaceBetween: 15,
+      loop: true,
+      navigation: {
+        nextEl: '.slider-button--next',
+        prevEl: '.slider-button--prev',
+      },
+      breakpoints: {
+        1024: {
+          slidesPerView: parseInt(slidesDesktop, 10) || 4,
+          spaceBetween: 30,
+        },
+        768: {
+          slidesPerView: 3,
+          spaceBetween: 30,
+        },
+        480: {
+          slidesPerView: 2,
+          spaceBetween: 15,
+        },
+      },
+    });
+
+    recentlyViewedProducts.classList.add('swiper-initialized');
   }
 
   showSection() {
