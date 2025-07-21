@@ -10,7 +10,6 @@ class RecentlyViewedProducts {
     this.sectionContainer = options.sectionContainer || document.querySelector('[data-recently-viewed-section]');
     this.productData = options.productData || null;
 
-    console.log(this.productData);
     this.init();
   }
 
@@ -22,7 +21,6 @@ class RecentlyViewedProducts {
 
     this.displayProducts();
   }
-
 
   addToRecentlyViewed(productData) {
     let recentlyViewed = this.getRecentlyViewed();
@@ -257,4 +255,4 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = RecentlyViewedProducts;
 } else {
   window.RecentlyViewedProducts = RecentlyViewedProducts;
-} 
+}
